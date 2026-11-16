@@ -1,0 +1,94 @@
+# ADAM-U accuracy & repeatability benchmark -- every number the experiment uses.
+
+model:
+  # Fetched by scripts/setup_env.sh. Override with --model-path or ADAM_U_SCENE_XML.
+  scene_xml: external/pnd_mujoco/pnd_robots/adam_u/scene.xml
+  pnd_mujoco_commit: 84873eb3c4afd584d468864ba41527a1c14fb688
+  tcp:
+    body: wristRollRight            # last body of the right arm
+    offset_m: [0.0, 0.0, -0.09]     # palm centre: between thumb base (47 mm) and knuckles (113-128 mm)
+
+controller:
+  # [kp (N*m/rad), kd (N*m*s/rad)] per motor, copied from the vendor example
+  # example/python/adam_U_open_arm.py (KP_CONFIG / KD_CONFIG) at the commit above.
+  gains:
+    waistRoll:           [405.0, 6.75]
+    waistPitch:          [405.0, 6.75]
+    waistYaw:            [205.0, 3.42]
+    neckYaw:             [9.0, 0.9]
+    neckPitch:           [9.0, 0.9]
+    shoulderPitch_Left:  [180.0, 1.8]
+    shoulderRoll_Left:   [180.0, 1.8]
+    shoulderYaw_Left:    [9.0, 0.9]
+    elbow_Left:          [9.0, 0.9]
+    wristYaw_Left:       [9.0, 0.9]
+    wristPitch_Left:     [9.0, 0.9]
+    wristRoll_Left:      [9.0, 0.9]
+    shoulderPitch_Right: [180.0, 1.8]
+    shoulderRoll_Right:  [180.0, 1.8]
+    shoulderYaw_Right:   [9.0, 0.9]
+    elbow_Right:         [9.0, 0.9]
+    wristYaw_Right:      [9.0, 0.9]
+    wristPitch_Right:    [9.0, 0.9]
+    wristRoll_Right:     [9.0, 0.9]
+
+protocol:
+  pre_hold_s: 1.0                   # hold the start configuration before moving
+  move_s: 2.0                       # minimum-jerk joint motion to the commanded configuration
+  dwell_s: 4.0                      # hold the command, then measure the TCP at the end
+  stabilisation_band_mm: 0.1        # stabilisation time = last time the TCP is outside this band around its final position
+
+simulation:
+  # MuJoCo's joint friction is a soft constraint by default: the arm creeps through it and,
+  # given ~20 s, ends where it would without friction. The no-slip solver makes joints
+  # really stick. It is switched on only for plants that have friction.
+  friction_noslip_iterations: 200
+  friction_noslip_tolerance: 1.0e-10
+
+targets:
+  # Order: shoulderPitch, shoulderRoll, shoulderYaw, elbow, wristYaw, wristPitch, wristRoll (right arm).
+  centre_config_rad: [-0.5, -0.25, 0.0, -1.6, 0.0, 0.0, 0.0]
+  cube_side_m: 0.25                 # P1 = cube centre, P2..P5 = corners of a diagonal plane, inset 10 % (ISO 9283 layout)
+  # Each trial starts at  q_command +/- approach_offset  so that every joint
+  # reaches the target from the positive side (approach "plus") or the negative side ("minus").
+  approach_offset_rad: [0.25, 0.12, 0.20, 0.25, 0.20, 0.15, 0.15]
+
+design:
+  seed: 20261114
+  repetitions: 10
+  control_modes: [pd, pd_gff]       # pd: vendor example as shipped; pd_gff: + gravity feedforward torque
+  conditions: [nominal, perturbed]
+  ablation_repetitions: 5
+  ablation_control_mode: pd_gff
+  ablation_conditions: [start_jitter_only, encoder_offset_only, payload_only, friction_only, encoder_noise_only]
+
+tolerance:                          # declared for the success-rate metric; not a REVEL requirement
+  position_mm: 5.0
+  orientation_deg: 2.0
+
+# Plant conditions. Anything not listed is zero / off. Vectors are per right-arm joint.
+# These magnitudes are assumptions, chosen to be plausible, not identified on hardware.
+conditions:
+  nominal: {}
+  perturbed:
+    encoder_offset_deg: [0.10, -0.15, 0.20, -0.10, 0.15, -0.20, 0.10]   # fixed zero-calibration error
+    payload_kg: 0.3                                                      # held object the controller's model ignores
+    friction_nm: [0.20, 0.20, 0.20, 0.10, 0.03, 0.03, 0.03]              # Coulomb friction per joint
+    encoder_noise_deg: 0.005                                             # white noise on measured position (~16-bit encoder LSB)
+    velocity_noise_rad_s: 0.002                                          # white noise on measured velocity
+    start_jitter_deg: 1.0                                                # random error of the start configuration, per joint (1 sigma)
+  start_jitter_only:
+    start_jitter_deg: 1.0
+  encoder_offset_only:
+    encoder_offset_deg: [0.10, -0.15, 0.20, -0.10, 0.15, -0.20, 0.10]
+    start_jitter_deg: 1.0
+  payload_only:
+    payload_kg: 0.3
+    start_jitter_deg: 1.0
+  friction_only:
+    friction_nm: [0.20, 0.20, 0.20, 0.10, 0.03, 0.03, 0.03]
+    start_jitter_deg: 1.0
+  encoder_noise_only:
+    encoder_noise_deg: 0.005
+    velocity_noise_rad_s: 0.002
+    start_jitter_deg: 1.0

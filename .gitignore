@@ -1,0 +1,9 @@
+external/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+results/smoke/
+MUJOCO_LOG.TXT
+MJDATA.TXT
+MJMODEL.TXT
