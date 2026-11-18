@@ -1,0 +1,23 @@
+{
+  "written": "2026-11-16T14:18:32+01:00",
+  "n_trials": 250,
+  "elapsed_s": 108.0,
+  "mujoco_version": "3.17.0",
+  "numpy_version": "2.2.6",
+  "python_version": "3.10.12",
+  "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.35",
+  "pnd_mujoco_commit_found": "84873eb3c4afd584d468864ba41527a1c14fb688",
+  "pnd_mujoco_commit_expected": "84873eb3c4afd584d468864ba41527a1c14fb688",
+  "seed": 20261114,
+  "control_modes": [
+    "pd_gff"
+  ],
+  "conditions": [
+    "start_jitter_only",
+    "encoder_offset_only",
+    "payload_only",
+    "friction_only",
+    "encoder_noise_only"
+  ],
+  "repetitions": 5
+}
